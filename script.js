@@ -11,6 +11,7 @@
 
 const JSONBIN_ID  = '69d52552aaba882197d2dfad';   // ← paste Bin ID here
 const JSONBIN_KEY = '$2a$10$FRMuYSvePOYlZcDWxRrhlOj4Zkq9gYSTuNcKUUY7FF.dn935/4w7y';  // ← paste API key here
+const PROXY = "https://corsproxy.io/?";
 
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 
@@ -27,8 +28,11 @@ let pendingSync = false;
 async function loadFromCloud() {
   showSyncStatus('loading');
   try {
-    const res = await fetch(JSONBIN_URL + '/latest', {
-      headers: { 'X-Access-Key': JSONBIN_KEY }
+    const res = await fetch(PROXY + encodeURIComponent(JSONBIN_URL + '/latest'), {
+      headers: { 
+        'X-Access-Key': JSONBIN_KEY,
+        'X-Bin-Meta': 'false'
+      }
     });
     if (!res.ok) throw new Error('fetch failed');
     const json = await res.json();
@@ -48,11 +52,12 @@ async function saveToCloud() {
   isSyncing = true;
   showSyncStatus('saving');
   try {
-    const res = await fetch(JSONBIN_URL, {
+    const res = await fetch(PROXY + encodeURIComponent(JSONBIN_URL), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Access-Key': JSONBIN_KEY
+        'X-Access-Key': JSONBIN_KEY,
+        'X-Bin-Meta': 'false'
       },
       body: JSON.stringify(STORE)
     });
