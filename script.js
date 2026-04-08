@@ -232,16 +232,6 @@ function buildCheckAllRow(m, days) {
 function buildHabitRows(m, days) {
   const cbClass = ['cb-w1','cb-w2','cb-w3','cb-w4','cb-w5'];
   const cellClass = ['day-cell-w1','day-cell-w2','day-cell-w3','day-cell-w4','day-cell-w5'];
-  // Precompute diet snap dot positions on circle r=9 cx=11 cy=11
-  // 3 dots at 33%, 66%, 100% (12 o'clock = top = -90deg offset)
-  const R = 9, CX = 11, CY = 11;
-  function dotPos(frac) {
-    const angle = (frac * 360 - 90) * Math.PI / 180;
-    return { x: (CX + R * Math.cos(angle)).toFixed(2), y: (CY + R * Math.sin(angle)).toFixed(2) };
-  }
-  const snapFracs = [1/3, 2/3, 1];
-  const snapPos = snapFracs.map(f => dotPos(f));
-
   let html = '';
   for (let h = 0; h < TOTAL_HABITS; h++) {
     const defaultName = h < 14 ? DEFAULT_HABITS[h] : SPECIAL_HABITS[h - 14];
@@ -271,15 +261,10 @@ function buildHabitRows(m, days) {
         html += `<td class="${cellClass[wk]}"${todayStyle}><input type="checkbox" class="day-cb cb-w1" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''} style="color:#0077aa;border-color:#0077aa;"></td>`;
 
       } else if (h === 15) {
-        // 🥦 Diet — arc drag with 3 snap dots at 33/66/100%
+        // 🥦 Diet — arc drag 0-100%
         const pct = loadData(`h_${m}_diet_${d}`, 0);
         const r = 9, circ = 2 * Math.PI * r;
         const dash = (pct / 100) * circ;
-        const snapDots = snapPos.map((p, si) => {
-          const thresh = Math.round(snapFracs[si] * 100);
-          const active = pct >= thresh;
-          return `<circle class="diet-snap-dot${active ? ' active' : ''}" cx="${p.x}" cy="${p.y}" r="1.8" data-snap="${thresh}"/>`;
-        }).join('');
         html += `<td class="${cellClass[wk]} diet-cell"${todayStyle}>
           <div class="diet-arc-wrap" data-m="${m}" data-d="${d}">
             <svg viewBox="0 0 22 22">
@@ -290,7 +275,6 @@ function buildHabitRows(m, days) {
                 stroke-dashoffset="${(circ - dash).toFixed(2)}"
                 transform="rotate(-90 11 11)"
                 class="diet-arc" data-m="${m}" data-d="${d}"/>
-              ${snapDots}
             </svg>
             <div class="diet-pct-label" id="dietLbl-${m}-${d}">${pct > 0 ? pct + '%' : ''}</div>
           </div>
@@ -305,6 +289,175 @@ function buildHabitRows(m, days) {
   return html;
 }
 // ════════════════════════════════════════════════════════════
+//  CALENDAR BUILDER
+// ════════════════════════════════════════════════════════════
+
+function buildCalendar(m) {
+  const days = MONTH_DAYS[m];
+  const mn = MONTHS[m];
+  // First day of month DOW
+  const firstDow = getDayOfWeek(m, 1);
+
+  // Build day cells
+  let cells = '';
+  // Empty cells before first day
+  for (let i = 0; i < firstDow; i++) {
+    cells += `<div class="cal-day empty"></div>`;
+  }
+  for (let d = 1; d <= days; d++) {
+    const isToday = (TODAY_Y === 2026 && TODAY_M === m && TODAY_D === d);
+    const wk = weekOfDay(d);
+    // Completion data
+    let done = 0;
+    for (let h = 0; h < TOTAL_HABITS; h++) {
+      const val = loadData(`h_${m}_day_${h}_${d}`, false);
+      if (val) done++;
+    }
+    const pct = done / TOTAL_HABITS;
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    else if (pct >= 1) cls += ' done-full';
+    else if (pct >= 0.5) cls += ' done-partial';
+    else if (pct > 0) cls += ' has-data';
+    const heat = (!isToday && done > 0) ? `<div class="cal-heat" style="opacity:${0.3 + pct*0.7};background:${WEEK_COLORS[wk]}"></div>` : '';
+    cells += `<div class="${cls}" data-m="${m}" data-d="${d}" title="${d} ${mn}: ${done}/${TOTAL_HABITS} habits">${d}${heat}</div>`;
+  }
+
+  return `
+  <div class="mini-calendar-wrap" id="cal-${m}">
+    <div class="cal-header">
+      <div class="cal-month-name">${mn}</div>
+      <div class="cal-year">HABIT TRACKER 2026</div>
+      <div class="cal-progress-bar"><div class="cal-progress-fill" id="calFill-${m}" style="width:0%"></div></div>
+      <div class="cal-progress-label" id="calPctLabel-${m}">0% month complete</div>
+    </div>
+    <div class="cal-grid-wrap">
+      <div class="cal-weekdays">
+        ${['S','M','T','W','T','F','S'].map(d=>`<div class="cal-wd">${d}</div>`).join('')}
+      </div>
+      <div class="cal-days-grid" id="calGrid-${m}">${cells}</div>
+    </div>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f5c842;box-shadow:0 0 0 1px #e8a800"></div>Today</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--w1)"></div>Full day</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--w1l)"></div>Partial</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#eee"></div>None</div>
+    </div>
+    <div class="cal-stats-row">
+      <div class="cal-stat"><div class="cal-stat-val" id="calStat1-${m}">0</div><div class="cal-stat-key">DONE</div></div>
+      <div class="cal-stat"><div class="cal-stat-val" id="calStat2-${m}">0</div><div class="cal-stat-key">STREAK</div></div>
+      <div class="cal-stat"><div class="cal-stat-val" id="calStat3-${m}">0%</div><div class="cal-stat-key">AVG/DAY</div></div>
+    </div>
+  </div>`;
+}
+
+function updateCalendar(m) {
+  const days = MONTH_DAYS[m];
+  const grid = document.getElementById(`calGrid-${m}`);
+  if (!grid) return;
+
+  let daysWithAny = 0, totalDone = 0, currentStreak = 0, streakRunning = true;
+  // Recalculate from last day backwards for streak
+  for (let d = days; d >= 1; d--) {
+    let done = 0;
+    for (let h = 0; h < TOTAL_HABITS; h++) {
+      if (loadData(`h_${m}_day_${h}_${d}`, false)) done++;
+    }
+    const pct = done / TOTAL_HABITS;
+    if (streakRunning && d <= (TODAY_M === m ? TODAY_D : days)) {
+      if (pct >= 0.5) currentStreak++;
+      else if (d <= (TODAY_M === m ? TODAY_D : days)) streakRunning = false;
+    }
+  }
+
+  let checkedDays = 0;
+  for (let d = 1; d <= days; d++) {
+    let done = 0;
+    for (let h = 0; h < TOTAL_HABITS; h++) {
+      if (loadData(`h_${m}_day_${h}_${d}`, false)) done++;
+    }
+    totalDone += done;
+    if (done > 0) daysWithAny++;
+    if (done >= TOTAL_HABITS * 0.5) checkedDays++;
+
+    const isToday = (TODAY_Y === 2026 && TODAY_M === m && TODAY_D === d);
+    const cells = grid.querySelectorAll('.cal-day:not(.empty)');
+    const cell = cells[d - 1];
+    if (!cell) continue;
+
+    const pct = done / TOTAL_HABITS;
+    const wk = weekOfDay(d);
+    cell.className = 'cal-day';
+    if (isToday) cell.classList.add('today');
+    else if (pct >= 1) cell.classList.add('done-full');
+    else if (pct >= 0.5) cell.classList.add('done-partial');
+    else if (pct > 0) cell.classList.add('has-data');
+
+    // update heat dot
+    let heat = cell.querySelector('.cal-heat');
+    if (!heat && !isToday && done > 0) {
+      heat = document.createElement('div');
+      heat.className = 'cal-heat';
+      cell.appendChild(heat);
+    }
+    if (heat) {
+      if (isToday || done === 0) { heat.remove(); }
+      else { heat.style.opacity = 0.3 + pct * 0.7; heat.style.background = WEEK_COLORS[wk]; }
+    }
+  }
+
+  const relevantDays = (TODAY_M === m && TODAY_Y === 2026) ? TODAY_D : days;
+  const monthPct = relevantDays > 0 ? (checkedDays / relevantDays * 100) : 0;
+  const fillEl = document.getElementById(`calFill-${m}`);
+  const lblEl = document.getElementById(`calPctLabel-${m}`);
+  if (fillEl) fillEl.style.width = monthPct.toFixed(1) + '%';
+  if (lblEl) lblEl.textContent = monthPct.toFixed(0) + '% month complete';
+
+  const avgPct = daysWithAny > 0 ? Math.round(totalDone / daysWithAny / TOTAL_HABITS * 100) : 0;
+  const s1 = document.getElementById(`calStat1-${m}`);
+  const s2 = document.getElementById(`calStat2-${m}`);
+  const s3 = document.getElementById(`calStat3-${m}`);
+  if (s1) s1.textContent = daysWithAny;
+  if (s2) s2.textContent = currentStreak + '🔥';
+  if (s3) s3.textContent = avgPct + '%';
+}
+
+// ════════════════════════════════════════════════════════════
+//  VIEW SWITCHER STATE
+// ════════════════════════════════════════════════════════════
+let viewMode = {}; // m -> 'calendar' | 'table'
+
+function switchView(m, mode) {
+  viewMode[m] = mode;
+  const calCol = document.getElementById(`calCol-${m}`);
+  const calDayPanel = document.getElementById(`calDayPanel-${m}`);
+  const tableCol = document.getElementById(`tableCol-${m}`);
+  const row2 = document.getElementById(`row2-${m}`);
+  const btnCal = document.getElementById(`vbCal-${m}`);
+  const btnTbl = document.getElementById(`vbTbl-${m}`);
+
+  if (mode === 'calendar') {
+    if (calCol) calCol.style.display = 'block';
+    if (calDayPanel) calDayPanel.style.display = 'flex';
+    if (tableCol) tableCol.style.display = 'none';
+    if (row2) row2.className = 'row2-habits-cal';
+    if (btnCal) btnCal.classList.add('active');
+    if (btnTbl) btnTbl.classList.remove('active');
+    updateCalendar(m);
+    // Auto-show today's habits if it's the current month, else show day 1
+    const autoDay = (TODAY_Y === 2026 && TODAY_M === m) ? TODAY_D : 1;
+    setTimeout(() => buildCalDayPanel(m, autoDay), 50);
+  } else {
+    if (calCol) calCol.style.display = 'none';
+    if (calDayPanel) calDayPanel.style.display = 'none';
+    if (tableCol) tableCol.style.display = 'block';
+    if (row2) row2.className = 'row2-habits';
+    if (btnCal) btnCal.classList.remove('active');
+    if (btnTbl) btnTbl.classList.add('active');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 //  PAGE BUILDER
 // ════════════════════════════════════════════════════════════
 
@@ -316,45 +469,56 @@ function buildPage(m) {
   const reflText = loadData(`refl_${m}`, '');
   const wkHdrs = buildWeekHeaders(m, days);
   const habRows = buildHabitRows(m, days);
+  const calHtml = buildCalendar(m);
 
   return `
   <div class="page" id="page-${m}">
-    <div class="top-section">
-      <div class="left-panel">
-        <div class="month-title-box">
-          <h2>${mn}</h2><p>HABIT TRACKER</p>
-          <div class="month-meta">
-            <span>MONTH</span><input value="${mn}" readonly>
-            <span>YEAR</span><input value="2026" readonly>
-          </div>
-        </div>
-        <div class="affirmation-box">
-          <label>✦ VISUAL AFFIRMATION</label>
-          <textarea placeholder="Write your affirmation…" onchange="saveData('aff_${m}',this.value)">${escHtml(affirmText)}</textarea>
-          <input class="iam-input" placeholder="I am… focused, intentional, ready." value="${escHtml(iamText)}" onchange="saveData('iam_${m}',this.value)">
-        </div>
+
+    <!-- ROW 1: Month/Year title bar -->
+    <div class="row1-title">
+      <div class="r1-month">
+        <h2>${mn}</h2>
+        <span class="r1-sub">HABIT TRACKER 2026</span>
       </div>
-      <div class="chart-panel"><canvas id="barChart-${m}"></canvas></div>
-      <div class="right-panel">
-        <div class="progress-summary-box">
-          <div class="labels"><span>DAILY PROGRESS</span><span>HABITS</span></div>
-          <div class="values">
-            <span class="big-val" id="dpPct-${m}">0.00%</span>
-            <span class="big-val" id="dpFrac-${m}">0 / 0</span>
-          </div>
-        </div>
-        <div class="top10-box">
-          <div class="hdr"><span>TOP 10 HABITS</span><span>progress</span></div>
-          <div id="top10-${m}">
-            ${Array.from({length:10},(_,i)=>`<div class="top10-row"><span class="num">${i+1}</span><span class="name" id="t10n-${m}-${i}">—</span><span class="pct" id="t10p-${m}-${i}">—</span></div>`).join('')}
-          </div>
-          <div class="top10-footer" id="top10Footer-${m}">Over 100% on 0 habits — keep going! 🚀</div>
-        </div>
+      <div class="r1-meta">
+        <div class="r1-meta-item"><span class="r1-key">MONTH</span><span class="r1-val">${mn}</span></div>
+        <div class="r1-meta-item"><span class="r1-key">YEAR</span><span class="r1-val">2026</span></div>
+      </div>
+      <div class="r1-affirmation">
+        <label>✦ AFFIRMATION</label>
+        <textarea placeholder="Write your affirmation or quote here…" onchange="saveData('aff_${m}',this.value)">${escHtml(affirmText)}</textarea>
+      </div>
+      <div class="r1-progress">
+        <div class="r1-prog-label">DAILY PROGRESS</div>
+        <div class="r1-prog-val" id="dpPct-${m}">0.00%</div>
+        <div class="r1-prog-frac" id="dpFrac-${m}">0 / 0</div>
       </div>
     </div>
 
-    <div class="daily-habits-section">
-      <div class="habits-table-wrap">
+    <!-- VIEW SWITCHER -->
+    <div class="view-switcher">
+      <button class="view-btn active" id="vbCal-${m}" onclick="switchView(${m},'calendar')">📅 Calendar</button>
+      <button class="view-btn" id="vbTbl-${m}" onclick="switchView(${m},'table')">📋 Table</button>
+    </div>
+
+    <!-- ROW 2: Calendar + Daily habits table + progress panel -->
+    <div class="row2-habits-cal" id="row2-${m}">
+      <!-- Calendar column (shown in calendar mode) -->
+      <div id="calCol-${m}">
+        ${calHtml}
+      </div>
+      <!-- Single-day habits panel (calendar mode only) -->
+      <div class="cal-day-habits-panel" id="calDayPanel-${m}">
+        <div class="cal-day-habits-hdr">
+          <span class="cal-day-habits-title" id="calDayTitle-${m}">— SELECT A DAY —</span>
+          <span class="cal-day-pct" id="calDayPct-${m}">0%</span>
+        </div>
+        <div class="cal-day-habits-list" id="calDayList-${m}">
+          <div class="cal-day-placeholder">← Tap a day on the calendar</div>
+        </div>
+      </div>
+      <!-- Habits table column (table mode only) -->
+      <div class="habits-table-wrap" id="tableCol-${m}">
         <div class="habits-section-hdr">DAILY HABITS <span class="pct-mini" id="dHdrPct-${m}">0 / 0 completed</span></div>
         <div style="overflow-x:auto">
           <table class="habits-table">
@@ -363,9 +527,10 @@ function buildPage(m) {
           </table>
         </div>
       </div>
+      <!-- Daily progress panel -->
       <div class="daily-progress-panel">
         <div class="dp-hdr">DAILY PROGRESS</div>
-        <div class="dp-summary" id="dpSummary-${m}">0 / 0 completed</div>
+        
         <div class="dp-col-hdrs"><span>goal</span><span>%</span><span>count</span><span>streak</span></div>
         <div id="dpRows-${m}">
           ${Array.from({length:TOTAL_HABITS},(_,h)=>`
@@ -379,29 +544,45 @@ function buildPage(m) {
       </div>
     </div>
 
-    <div class="week-circles">
-      ${[0,1,2,3,4].map(wk=>`
-      <div class="week-circle-card wc${wk+1}">
-        <div class="wlabel">week ${wk+1}</div>
-        <div class="circle-wrap">
-          <svg width="80" height="80" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="#eee" stroke-width="7"/>
-            <circle cx="40" cy="40" r="34" fill="none" stroke="${WEEK_COLORS[wk]}" stroke-width="7"
-              stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
-              id="wcArc-${m}-${wk}" style="transition:stroke-dashoffset .6s"/>
-          </svg>
-          <div class="pct-text" id="wcPct-${m}-${wk}">0%</div>
+    <!-- ROW 3: Week circles | Bar chart | Top 10 -->
+    <div class="row3-stats">
+      <div class="r3-weeks">
+        ${[0,1,2,3,4].map(wk=>`
+        <div class="week-circle-card wc${wk+1}">
+          <div class="wlabel">W${wk+1}</div>
+          <div class="circle-wrap">
+            <svg width="64" height="64" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#eee" stroke-width="7"/>
+              <circle cx="40" cy="40" r="34" fill="none" stroke="${WEEK_COLORS[wk]}" stroke-width="7"
+                stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                id="wcArc-${m}-${wk}" style="transition:stroke-dashoffset .6s"/>
+            </svg>
+            <div class="pct-text" id="wcPct-${m}-${wk}">0%</div>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div class="r3-chart">
+        <div class="chart-panel"><canvas id="barChart-${m}"></canvas></div>
+      </div>
+      <div class="r3-top10">
+        <div class="top10-box">
+          <div class="hdr"><span>TOP 10 HABITS</span><span>progress</span></div>
+          <div id="top10-${m}">
+            ${Array.from({length:10},(_,i)=>`<div class="top10-row"><span class="num">${i+1}</span><span class="name" id="t10n-${m}-${i}">—</span><span class="pct" id="t10p-${m}-${i}">—</span></div>`).join('')}
+          </div>
+          <div class="top10-footer" id="top10Footer-${m}">Over 100% on 0 habits — keep going! 🚀</div>
         </div>
-      </div>`).join('')}
+      </div>
     </div>
 
+    <!-- MONTHLY REFLECTION -->
     <div class="reflection-section">
       <div class="section-title">📝 MONTHLY REFLECTION</div>
       <textarea placeholder="This month, I felt…&#10;&#10;I'm proud of…&#10;&#10;Next month I want to…" onchange="saveData('refl_${m}',this.value)">${escHtml(reflText)}</textarea>
     </div>
+
   </div>`;
 }
-
 // ════════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════════
@@ -427,6 +608,12 @@ function switchMonth(m) {
   document.querySelectorAll('.month-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`page-${m}`).classList.add('active');
   document.getElementById('monthTabs').children[m].classList.add('active');
+  // Default to calendar view if not yet set
+  if (!viewMode[m]) {
+    viewMode[m] = 'calendar';
+    // calendar is already shown by default from HTML, just update it
+  }
+  switchView(m, viewMode[m]);
   updateStats(m);
   buildCharts(m);
 }
@@ -460,7 +647,10 @@ function updateStats(m) {
   const fracVal = `${totalDone} / ${totalPoss}`;
   document.getElementById(`dpPct-${m}`).textContent = pctVal;
   document.getElementById(`dpFrac-${m}`).textContent = fracVal;
-  document.getElementById(`dpSummary-${m}`).textContent = fracVal + ' completed';
+  const dpSummaryEl = document.getElementById(`dpSummary-${m}`);
+  if (dpSummaryEl) {
+    dpSummaryEl.textContent = fracVal + ' completed';
+  }
   document.getElementById(`dHdrPct-${m}`).textContent = fracVal + ' completed';
   for (let wk = 0; wk < 5; wk++) {
     let wDone = 0, wPoss = 0;
@@ -489,6 +679,10 @@ function updateStats(m) {
   const foot = document.getElementById(`top10Footer-${m}`);
   if (foot) foot.textContent = `Over 100% on ${over100} habits — keep going! 🚀`;
   buildCharts(m);
+  updateCalendar(m);
+  // Refresh cal day panel if a day is selected
+  const selectedDay = document.querySelector(`#calGrid-${m} .cal-day-selected`);
+  if (selectedDay && selectedDay.dataset.d) buildCalDayPanel(m, +selectedDay.dataset.d);
 }
 
 function buildCharts(m) {
@@ -533,66 +727,40 @@ document.addEventListener('change', e => {
   }
 });
 
-// ── Diet arc drag handler ─────────────────────────────────────
+// ── Diet arc drag handler ────────────────────────────────────
 (function() {
   let dragging = null;
-
   function getAngle(wrap, x, y) {
     const rect = wrap.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
     let angle = Math.atan2(y - cy, x - cx) * 180 / Math.PI + 90;
     if (angle < 0) angle += 360;
     return angle;
   }
-
   function applyDiet(wrap, pct) {
     const m = wrap.dataset.m, d = wrap.dataset.d;
     const arc = wrap.querySelector('.diet-arc');
     const lbl = document.getElementById(`dietLbl-${m}-${d}`);
     const r = 9, circ = 2 * Math.PI * r;
-    const dash = (pct / 100) * circ;
-    if (arc) arc.setAttribute('stroke-dashoffset', (circ - dash).toFixed(2));
+    if (arc) arc.setAttribute('stroke-dashoffset', (circ - (pct/100)*circ).toFixed(2));
     if (lbl) lbl.textContent = pct > 0 ? pct + '%' : '';
-    // Update 3 snap dots: active if pct >= their threshold
-    wrap.querySelectorAll('.diet-snap-dot').forEach(dot => {
-      const thresh = +dot.dataset.snap;
-      dot.classList.toggle('active', pct >= thresh);
-    });
     saveData(`h_${m}_diet_${d}`, pct);
   }
-
-  // Clicking directly on a snap dot snaps to its value
-  document.addEventListener('click', e => {
-    const dot = e.target.closest('.diet-snap-dot');
-    if (!dot) return;
-    const wrap = dot.closest('.diet-arc-wrap');
-    if (!wrap) return;
-    const thresh = +dot.dataset.snap;
-    const cur = loadData(`h_${wrap.dataset.m}_diet_${wrap.dataset.d}`, 0);
-    // Click same active dot = reset to 0, else set to threshold
-    const next = (cur === thresh) ? 0 : thresh;
-    applyDiet(wrap, next);
-  });
-
   document.addEventListener('pointerdown', e => {
     const wrap = e.target.closest('.diet-arc-wrap');
     if (!wrap) return;
     dragging = wrap;
     wrap.setPointerCapture(e.pointerId);
-    const pct = Math.round(getAngle(wrap, e.clientX, e.clientY) / 360 * 100);
-    applyDiet(wrap, Math.min(100, Math.max(0, pct)));
+    applyDiet(wrap, Math.min(100, Math.max(0, Math.round(getAngle(wrap, e.clientX, e.clientY) / 360 * 100))));
   });
-
   document.addEventListener('pointermove', e => {
     if (!dragging) return;
-    const pct = Math.round(getAngle(dragging, e.clientX, e.clientY) / 360 * 100);
-    applyDiet(dragging, Math.min(100, Math.max(0, pct)));
+    applyDiet(dragging, Math.min(100, Math.max(0, Math.round(getAngle(dragging, e.clientX, e.clientY) / 360 * 100))));
   });
-
   document.addEventListener('pointerup', () => { dragging = null; });
 })();
 
+// ── Check-all click handler ───────────────────────────────────
 document.addEventListener('click', e => {
   const btn = e.target.closest('.check-all-btn');
   if (!btn) return;
@@ -611,5 +779,81 @@ document.addEventListener('click', e => {
   btn.classList.toggle('all-done', !allChecked);
   updateStats(m);
 });
+
+// ── Calendar day click → show single-day habits ──────────────
+document.addEventListener('click', e => {
+  const day = e.target.closest('.cal-day:not(.empty)');
+  if (!day) return;
+  const m = +day.dataset.m;
+  const d = +day.dataset.d;
+  if (isNaN(m) || isNaN(d)) return;
+  buildCalDayPanel(m, d);
+});
+
+function buildCalDayPanel(m, d) {
+  const listEl = document.getElementById(`calDayList-${m}`);
+  const titleEl = document.getElementById(`calDayTitle-${m}`);
+  const pctEl = document.getElementById(`calDayPct-${m}`);
+  if (!listEl) return;
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dow = getDayOfWeek(m, d);
+  titleEl.textContent = `${dayNames[dow]} ${d}`;
+
+  let done = 0;
+  let html = '';
+  for (let h = 0; h < TOTAL_HABITS; h++) {
+    const defaultName = h < 14 ? DEFAULT_HABITS[h] : SPECIAL_HABITS[h - 14];
+    const hname = loadData(`h_${m}_name_${h}`, defaultName);
+    const tc = TIMING_COLORS[h];
+    const timing = TIMINGS[h];
+    const isDaily = (h >= 14);
+
+    if (isDaily && h === 14) {
+      html += `<div class="cdh-section-label">✦ DAILY GOALS</div>`;
+    }
+
+    if (h === 15) {
+      // Diet arc
+      const pct = loadData(`h_${m}_diet_${d}`, 0);
+      const r = 9, circ = 2 * Math.PI * r;
+      const dash = (pct / 100) * circ;
+      if (pct > 0) done++;
+      html += `<div class="cdh-row">
+        <div class="cdh-diet-wrap diet-arc-wrap" data-m="${m}" data-d="${d}">
+          <svg viewBox="0 0 22 22" width="22" height="22">
+            <circle cx="11" cy="11" r="${r}" fill="none" stroke="#ddd" stroke-width="2.5"/>
+            <circle cx="11" cy="11" r="${r}" fill="none" stroke="#1a7a3a" stroke-width="2.5"
+              stroke-linecap="round" stroke-dasharray="${circ.toFixed(2)}"
+              stroke-dashoffset="${(circ - dash).toFixed(2)}"
+              transform="rotate(-90 11 11)" class="diet-arc" data-m="${m}" data-d="${d}"/>
+          </svg>
+          <div class="diet-pct-label" id="dietLbl-${m}-${d}">${pct > 0 ? pct + '%' : ''}</div>
+        </div>
+        <span class="cdh-name">${escHtml(hname)}</span>
+        <span class="cdh-timing" style="background:${tc.bg};color:${tc.color}">${timing}</span>
+      </div>`;
+    } else {
+      const checked = loadData(`h_${m}_day_${h}_${d}`, false);
+      if (checked) done++;
+      const cbStyle = h === 14 ? 'color:#0077aa;border-color:#0077aa;' : '';
+      const wk = weekOfDay(d);
+      const cbClass = h >= 14 ? 'cb-w1' : ['cb-w1','cb-w2','cb-w3','cb-w4','cb-w5'][wk];
+      html += `<div class="cdh-row">
+        <input type="checkbox" class="day-cb ${cbClass} cdh-cb" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''} style="${cbStyle}">
+        <span class="cdh-name">${escHtml(hname)}</span>
+        <span class="cdh-timing" style="background:${tc.bg};color:${tc.color}">${timing}</span>
+      </div>`;
+    }
+  }
+  listEl.innerHTML = html;
+  const pct = Math.round(done / TOTAL_HABITS * 100);
+  pctEl.textContent = pct + '%';
+
+  // Highlight the selected day
+  document.querySelectorAll(`#calGrid-${m} .cal-day`).forEach(el => el.classList.remove('cal-day-selected'));
+  const cells = document.querySelectorAll(`#calGrid-${m} .cal-day:not(.empty)`);
+  if (cells[d - 1]) cells[d - 1].classList.add('cal-day-selected');
+}
 
 init();
