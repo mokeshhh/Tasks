@@ -275,18 +275,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   font-weight: 600;
   color: var(--text-dark);
 }
-.dp-row:first-child {
-  margin-top: 32px; /* adjust space */
-}
-
-.dp-row:nth-last-child(2) {
-  margin-top: 15px; /* match row height */
-}
 .dp-row {
   display: grid;
   grid-template-columns: 28px 1fr 48px 40px;
   gap: 4px;
-  padding: 5.6px 10px;
+  padding: 4px 10px;
   font-size: 10px;
   align-items: center;
   border-bottom: 1px solid #f8f8f8;
