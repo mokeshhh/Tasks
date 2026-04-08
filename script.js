@@ -232,6 +232,16 @@ function buildCheckAllRow(m, days) {
 function buildHabitRows(m, days) {
   const cbClass = ['cb-w1','cb-w2','cb-w3','cb-w4','cb-w5'];
   const cellClass = ['day-cell-w1','day-cell-w2','day-cell-w3','day-cell-w4','day-cell-w5'];
+  // Precompute diet snap dot positions on circle r=9 cx=11 cy=11
+  // 3 dots at 33%, 66%, 100% (12 o'clock = top = -90deg offset)
+  const R = 9, CX = 11, CY = 11;
+  function dotPos(frac) {
+    const angle = (frac * 360 - 90) * Math.PI / 180;
+    return { x: (CX + R * Math.cos(angle)).toFixed(2), y: (CY + R * Math.sin(angle)).toFixed(2) };
+  }
+  const snapFracs = [1/3, 2/3, 1];
+  const snapPos = snapFracs.map(f => dotPos(f));
+
   let html = '';
   for (let h = 0; h < TOTAL_HABITS; h++) {
     const defaultName = h < 14 ? DEFAULT_HABITS[h] : SPECIAL_HABITS[h - 14];
@@ -245,22 +255,55 @@ function buildHabitRows(m, days) {
     html += `<tr>
       <td class="timing-cell"><span class="timing-badge" style="background:${tc.bg};color:${tc.color}">${TIMINGS[h]}</span></td>
       <td class="habit-name-cell"><input class="habit-name-input" data-m="${m}" data-h="${h}" value="${escHtml(hname)}" placeholder="Add habit…"></td>`;
+
     for (let d = 1; d <= days; d++) {
       const wk = weekOfDay(d);
-      const checked = loadData(`h_${m}_day_${h}_${d}`, false);
       const isToday = (TODAY_Y === 2026 && TODAY_M === m && TODAY_D === d);
       let todayStyle = '';
       if (isToday) {
         const bb = isLastRow ? `border-bottom:2px solid ${TODAY_RING};border-radius:0 0 3px 3px;` : '';
         todayStyle = ` style="background:${TODAY_BG}33;border-left:2px solid ${TODAY_RING};border-right:2px solid ${TODAY_RING};${bb}"`;
       }
-      html += `<td class="${cellClass[wk]}"${todayStyle}><input type="checkbox" class="day-cb ${cbClass[wk]}" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''}></td>`;
+
+      if (h === 14) {
+        // 💧 Water — normal checkbox (same as other habits)
+        const checked = loadData(`h_${m}_day_${h}_${d}`, false);
+        html += `<td class="${cellClass[wk]}"${todayStyle}><input type="checkbox" class="day-cb cb-w1" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''} style="color:#0077aa;border-color:#0077aa;"></td>`;
+
+      } else if (h === 15) {
+        // 🥦 Diet — arc drag with 3 snap dots at 33/66/100%
+        const pct = loadData(`h_${m}_diet_${d}`, 0);
+        const r = 9, circ = 2 * Math.PI * r;
+        const dash = (pct / 100) * circ;
+        const snapDots = snapPos.map((p, si) => {
+          const thresh = Math.round(snapFracs[si] * 100);
+          const active = pct >= thresh;
+          return `<circle class="diet-snap-dot${active ? ' active' : ''}" cx="${p.x}" cy="${p.y}" r="1.8" data-snap="${thresh}"/>`;
+        }).join('');
+        html += `<td class="${cellClass[wk]} diet-cell"${todayStyle}>
+          <div class="diet-arc-wrap" data-m="${m}" data-d="${d}">
+            <svg viewBox="0 0 22 22">
+              <circle cx="11" cy="11" r="${r}" fill="none" stroke="#ddd" stroke-width="2.5"/>
+              <circle cx="11" cy="11" r="${r}" fill="none" stroke="#1a7a3a" stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-dasharray="${circ.toFixed(2)}"
+                stroke-dashoffset="${(circ - dash).toFixed(2)}"
+                transform="rotate(-90 11 11)"
+                class="diet-arc" data-m="${m}" data-d="${d}"/>
+              ${snapDots}
+            </svg>
+            <div class="diet-pct-label" id="dietLbl-${m}-${d}">${pct > 0 ? pct + '%' : ''}</div>
+          </div>
+        </td>`;
+      } else {
+        const checked = loadData(`h_${m}_day_${h}_${d}`, false);
+        html += `<td class="${cellClass[wk]}"${todayStyle}><input type="checkbox" class="day-cb ${cbClass[wk]}" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''}></td>`;
+      }
     }
     html += '</tr>';
   }
   return html;
 }
-
 // ════════════════════════════════════════════════════════════
 //  PAGE BUILDER
 // ════════════════════════════════════════════════════════════
@@ -489,6 +532,66 @@ document.addEventListener('change', e => {
     updateStats(+m);
   }
 });
+
+// ── Diet arc drag handler ─────────────────────────────────────
+(function() {
+  let dragging = null;
+
+  function getAngle(wrap, x, y) {
+    const rect = wrap.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let angle = Math.atan2(y - cy, x - cx) * 180 / Math.PI + 90;
+    if (angle < 0) angle += 360;
+    return angle;
+  }
+
+  function applyDiet(wrap, pct) {
+    const m = wrap.dataset.m, d = wrap.dataset.d;
+    const arc = wrap.querySelector('.diet-arc');
+    const lbl = document.getElementById(`dietLbl-${m}-${d}`);
+    const r = 9, circ = 2 * Math.PI * r;
+    const dash = (pct / 100) * circ;
+    if (arc) arc.setAttribute('stroke-dashoffset', (circ - dash).toFixed(2));
+    if (lbl) lbl.textContent = pct > 0 ? pct + '%' : '';
+    // Update 3 snap dots: active if pct >= their threshold
+    wrap.querySelectorAll('.diet-snap-dot').forEach(dot => {
+      const thresh = +dot.dataset.snap;
+      dot.classList.toggle('active', pct >= thresh);
+    });
+    saveData(`h_${m}_diet_${d}`, pct);
+  }
+
+  // Clicking directly on a snap dot snaps to its value
+  document.addEventListener('click', e => {
+    const dot = e.target.closest('.diet-snap-dot');
+    if (!dot) return;
+    const wrap = dot.closest('.diet-arc-wrap');
+    if (!wrap) return;
+    const thresh = +dot.dataset.snap;
+    const cur = loadData(`h_${wrap.dataset.m}_diet_${wrap.dataset.d}`, 0);
+    // Click same active dot = reset to 0, else set to threshold
+    const next = (cur === thresh) ? 0 : thresh;
+    applyDiet(wrap, next);
+  });
+
+  document.addEventListener('pointerdown', e => {
+    const wrap = e.target.closest('.diet-arc-wrap');
+    if (!wrap) return;
+    dragging = wrap;
+    wrap.setPointerCapture(e.pointerId);
+    const pct = Math.round(getAngle(wrap, e.clientX, e.clientY) / 360 * 100);
+    applyDiet(wrap, Math.min(100, Math.max(0, pct)));
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const pct = Math.round(getAngle(dragging, e.clientX, e.clientY) / 360 * 100);
+    applyDiet(dragging, Math.min(100, Math.max(0, pct)));
+  });
+
+  document.addEventListener('pointerup', () => { dragging = null; });
+})();
 
 document.addEventListener('click', e => {
   const btn = e.target.closest('.check-all-btn');
