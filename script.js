@@ -256,27 +256,18 @@ function buildHabitRows(m, days) {
       }
 
       if (h === 14) {
-        // 💧 Water — normal checkbox (same as other habits)
-        const checked = loadData(`h_${m}_day_${h}_${d}`, false);
-        html += `<td class="${cellClass[wk]}"${todayStyle}><input type="checkbox" class="day-cb cb-w1" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''} style="color:#0077aa;border-color:#0077aa;"></td>`;
+        const wval = loadData(`h_${m}_water_${d}`, 0);
+        html += `<td class="${cellClass[wk]}"${todayStyle}>
+          <div class="tbl-pill-wrap">
+            ${[1,2,3].map(v=>`<span class="tbl-pill water-pill${wval===v?' tbl-pill-sel wp-sel':''}" data-v="${v}" data-m="${m}" data-d="${d}">${v}L</span>`).join('')}
+          </div>
+        </td>`;
 
       } else if (h === 15) {
-        // 🥦 Diet — arc drag 0-100%
-        const pct = loadData(`h_${m}_diet_${d}`, 0);
-        const r = 9, circ = 2 * Math.PI * r;
-        const dash = (pct / 100) * circ;
-        html += `<td class="${cellClass[wk]} diet-cell"${todayStyle}>
-          <div class="diet-arc-wrap" data-m="${m}" data-d="${d}">
-            <svg viewBox="0 0 22 22">
-              <circle cx="11" cy="11" r="${r}" fill="none" stroke="#ddd" stroke-width="2.5"/>
-              <circle cx="11" cy="11" r="${r}" fill="none" stroke="#1a7a3a" stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-dasharray="${circ.toFixed(2)}"
-                stroke-dashoffset="${(circ - dash).toFixed(2)}"
-                transform="rotate(-90 11 11)"
-                class="diet-arc" data-m="${m}" data-d="${d}"/>
-            </svg>
-            <div class="diet-pct-label" id="dietLbl-${m}-${d}">${pct > 0 ? pct + '%' : ''}</div>
+        const dval = loadData(`h_${m}_diet_${d}`, 0);
+        html += `<td class="${cellClass[wk]}"${todayStyle}>
+          <div class="tbl-pill-wrap">
+            ${[1,2,3].map(v=>`<span class="tbl-pill diet-pill${dval===v?' tbl-pill-sel dp-sel':''}" data-v="${v}" data-m="${m}" data-d="${d}">${v}</span>`).join('')}
           </div>
         </td>`;
       } else {
@@ -320,7 +311,8 @@ function buildCalendar(m) {
     else if (pct >= 0.5) cls += ' done-partial';
     else if (pct > 0) cls += ' has-data';
     const heat = (!isToday && done > 0) ? `<div class="cal-heat" style="opacity:${0.3 + pct*0.7};background:${WEEK_COLORS[wk]}"></div>` : '';
-    cells += `<div class="${cls}" data-m="${m}" data-d="${d}" title="${d} ${mn}: ${done}/${TOTAL_HABITS} habits">${d}${heat}</div>`;
+    const pctLabel = (!isToday && done > 0) ? `<div class="cal-day-pct-mini">${Math.round(pct*100)}%</div>` : '';
+    cells += `<div class="${cls}" data-m="${m}" data-d="${d}" title="${d} ${mn}: ${done}/${TOTAL_HABITS} habits">${d}${heat}${pctLabel}</div>`;
   }
 
   return `
@@ -727,6 +719,48 @@ document.addEventListener('change', e => {
   }
 });
 
+// ── Water pill handler ───────────────────────────────────────
+document.addEventListener('click', e => {
+  const pill = e.target.closest('.water-pill');
+  if (!pill) return;
+  const {m, d, v} = pill.dataset;
+  const mn = +m, dn = +d, vn = +v;
+  const cur = loadData(`h_${mn}_water_${dn}`, 0);
+  const newVal = cur === vn ? 0 : vn;
+  saveData(`h_${mn}_water_${dn}`, newVal);
+  // update all water pills for this day (table + panel)
+  document.querySelectorAll(`.water-pill[data-m="${mn}"][data-d="${dn}"]`).forEach(p => {
+    const sel = +p.dataset.v === newVal;
+    p.classList.toggle('tbl-pill-sel', sel);
+    p.classList.toggle('wp-sel', sel);
+  });
+  // update left badge in daily panel
+  const badge = document.getElementById(`wBadge-${mn}-${dn}`);
+  if (badge) badge.textContent = newVal ? newVal+'L' : '';
+  showToast(); updateStats(mn);
+});
+
+// ── Diet pill handler ────────────────────────────────────────
+document.addEventListener('click', e => {
+  const pill = e.target.closest('.diet-pill');
+  if (!pill) return;
+  const {m, d, v} = pill.dataset;
+  const mn = +m, dn = +d, vn = +v;
+  const cur = loadData(`h_${mn}_diet_${dn}`, 0);
+  const newVal = cur === vn ? 0 : vn;
+  saveData(`h_${mn}_diet_${dn}`, newVal);
+  // update all diet pills for this day (table + panel)
+  document.querySelectorAll(`.diet-pill[data-m="${mn}"][data-d="${dn}"]`).forEach(p => {
+    const sel = +p.dataset.v === newVal;
+    p.classList.toggle('tbl-pill-sel', sel);
+    p.classList.toggle('dp-sel', sel);
+  });
+  // update left badge in daily panel
+  const dbadge = document.getElementById(`dBadge-${mn}-${dn}`);
+  if (dbadge) dbadge.textContent = newVal ? newVal : '';
+  showToast(); updateStats(mn);
+});
+
 // ── Diet arc drag handler ────────────────────────────────────
 (function() {
   let dragging = null;
@@ -813,34 +847,33 @@ function buildCalDayPanel(m, d) {
       html += `<div class="cdh-section-label">✦ DAILY GOALS</div>`;
     }
 
-    if (h === 15) {
-      // Diet arc
-      const pct = loadData(`h_${m}_diet_${d}`, 0);
-      const r = 9, circ = 2 * Math.PI * r;
-      const dash = (pct / 100) * circ;
-      if (pct > 0) done++;
+    if (h === 14) {
+      const wval = loadData(`h_${m}_water_${d}`, 0);
+      if (wval > 0) done++;
       html += `<div class="cdh-row">
-        <div class="cdh-diet-wrap diet-arc-wrap" data-m="${m}" data-d="${d}">
-          <svg viewBox="0 0 22 22" width="22" height="22">
-            <circle cx="11" cy="11" r="${r}" fill="none" stroke="#ddd" stroke-width="2.5"/>
-            <circle cx="11" cy="11" r="${r}" fill="none" stroke="#1a7a3a" stroke-width="2.5"
-              stroke-linecap="round" stroke-dasharray="${circ.toFixed(2)}"
-              stroke-dashoffset="${(circ - dash).toFixed(2)}"
-              transform="rotate(-90 11 11)" class="diet-arc" data-m="${m}" data-d="${d}"/>
-          </svg>
-          <div class="diet-pct-label" id="dietLbl-${m}-${d}">${pct > 0 ? pct + '%' : ''}</div>
-        </div>
+        <span class="cdh-sel-badge water-sel-badge" id="wBadge-${m}-${d}">${wval ? wval+'L' : ''}</span>
         <span class="cdh-name">${escHtml(hname)}</span>
-        <span class="cdh-timing" style="background:${tc.bg};color:${tc.color}">${timing}</span>
+        <span class="cdh-timing cdh-pill-group">
+          ${[1,2,3].map(v=>`<span class="cdh-pill water-pill" data-v="${v}" data-m="${m}" data-d="${d}">${v}L</span>`).join('')}
+        </span>
+      </div>`;
+    } else if (h === 15) {
+      const dval = loadData(`h_${m}_diet_${d}`, 0);
+      if (dval > 0) done++;
+      html += `<div class="cdh-row">
+        <span class="cdh-sel-badge diet-sel-badge" id="dBadge-${m}-${d}">${dval ? dval : ''}</span>
+        <span class="cdh-name">${escHtml(hname)}</span>
+        <span class="cdh-timing cdh-pill-group">
+          ${[1,2,3].map(v=>`<span class="cdh-pill diet-pill" data-v="${v}" data-m="${m}" data-d="${d}">${v}</span>`).join('')}
+        </span>
       </div>`;
     } else {
       const checked = loadData(`h_${m}_day_${h}_${d}`, false);
       if (checked) done++;
-      const cbStyle = h === 14 ? 'color:#0077aa;border-color:#0077aa;' : '';
       const wk = weekOfDay(d);
       const cbClass = h >= 14 ? 'cb-w1' : ['cb-w1','cb-w2','cb-w3','cb-w4','cb-w5'][wk];
       html += `<div class="cdh-row">
-        <input type="checkbox" class="day-cb ${cbClass} cdh-cb" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''} style="${cbStyle}">
+        <input type="checkbox" class="day-cb ${cbClass} cdh-cb" data-m="${m}" data-h="${h}" data-d="${d}" ${checked ? 'checked' : ''}>
         <span class="cdh-name">${escHtml(hname)}</span>
         <span class="cdh-timing" style="background:${tc.bg};color:${tc.color}">${timing}</span>
       </div>`;

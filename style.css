@@ -527,3 +527,51 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   .row1-title { grid-template-columns: 1fr; }
   .chart-panel { height: 160px; }
 }
+
+
+/* ── Pill selectors (shared base) ───────────────────────── */
+.tbl-pill-wrap { display:flex; gap:2px; justify-content:center; align-items:center; }
+
+.tbl-pill {
+  font-size:8px; font-weight:600; padding:1px 4px; border-radius:8px;
+  border:1.5px solid #aaa; color:#aaa; cursor:pointer; user-select:none;
+  transition:border-color .15s, color .15s;
+}
+.tbl-pill.wp-sel  { border-color:#0077aa; color:#0077aa; background:transparent; }
+.tbl-pill.dp-sel  { border-color:#1a7a3a; color:#1a7a3a; background:transparent; }
+
+/* ── Daily panel pills (right side) ─────────────────────── */
+.cdh-pill-group { display:flex; gap:3px; align-items:center; background:none !important; }
+.cdh-pill {
+  font-size:9px; font-weight:600; padding:1px 5px; border-radius:8px;
+  border:1.5px solid #ccc; color:#aaa; cursor:pointer; user-select:none;
+}
+
+.cdh-pill:hover { border-color:#aaa; color:#666; }
+
+.cdh-pill.wp-sel {
+  border-color:#9acbe2;
+  color:#aaa;              /* keep original text color */
+  background:transparent;
+}
+
+.cdh-pill.dp-sel {
+  border-color:#98ebb4;
+  color:#aaa;              /* keep original text color */
+  background:transparent;
+}
+
+/* ── Left badge in daily panel ───────────────────────────── */
+.cdh-sel-badge {
+  min-width:24px; height:20px; display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; border-radius:6px; flex-shrink:0;
+  border:1.5px solid #ddd; color:transparent;
+}
+.water-sel-badge { border-color:#0077aa55; color:#0077aa; }
+.diet-sel-badge  { border-color:#1a7a3a55; color:#1a7a3a; }
+
+/* ── Calendar day % mini label ───────────────────────────── */
+.cal-day-pct-mini {
+  font-size:7px; font-weight:700; color:#888; line-height:1;
+  position:absolute; bottom:2px; left:0; right:0; text-align:center;
+}
