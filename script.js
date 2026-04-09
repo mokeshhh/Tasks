@@ -242,10 +242,16 @@ function buildHabitRows(m, days) {
     if (isFirstSpecial) {
       html += `<tr><td colspan="999" style="background:#e8f8e8;padding:2px 8px;font-size:9px;font-weight:700;letter-spacing:1.5px;color:#1a7a3a;">✦ DAILY GOALS</td></tr>`;
     }
+    const isWater = (h === 14);
+    const isDiet  = (h === 15);
+    const wval = isWater ? loadData(`h_${m}_water_0`, 0) : 0; // just for reference, not used here
     html += `<tr>
       <td class="timing-cell"><span class="timing-badge" style="background:${tc.bg};color:${tc.color}">${TIMINGS[h]}</span></td>
-      <td class="habit-name-cell"><input class="habit-name-input" data-m="${m}" data-h="${h}" value="${escHtml(hname)}" placeholder="Add habit…"></td>`;
-
+      <td class="habit-name-cell" style="${isWater||isDiet?'display:flex;align-items:center;gap:6px;flex-wrap:wrap;':''}"">
+        <input class="habit-name-input" data-m="${m}" data-h="${h}" value="${escHtml(hname)}" placeholder="Add habit…" style="flex:1;min-width:80px;">
+        ${isWater ? `<span class="cdh-pill-group tbl-inline-pills">${[1,2,3].map(v=>`<span class="cdh-pill water-pill" data-v="${v}" data-m="${m}" data-d="ALL" style="font-size:9px;padding:2px 5px;">${v}L</span>`).join('')}</span>` : ''}
+        ${isDiet  ? `<span class="cdh-pill-group tbl-inline-pills">${[1,2,3].map(v=>`<span class="cdh-pill diet-pill"  data-v="${v}" data-m="${m}" data-d="ALL" style="font-size:9px;padding:2px 5px;">${v}</span>`).join('')}</span>` : ''}
+      </td>`;
     for (let d = 1; d <= days; d++) {
       const wk = weekOfDay(d);
       const isToday = (TODAY_Y === 2026 && TODAY_M === m && TODAY_D === d);
@@ -256,19 +262,17 @@ function buildHabitRows(m, days) {
       }
 
       if (h === 14) {
+        // 💧 Water — result box (filled when selected)
         const wval = loadData(`h_${m}_water_${d}`, 0);
         html += `<td class="${cellClass[wk]}"${todayStyle}>
-          <div class="tbl-pill-wrap">
-            ${[1,2,3].map(v=>`<span class="tbl-pill water-pill${wval===v?' tbl-pill-sel wp-sel':''}" data-v="${v}" data-m="${m}" data-d="${d}">${v}L</span>`).join('')}
-          </div>
+          <div class="tbl-result-box water-result${wval?' tbl-res-filled':''}" id="wRes-${m}-${d}">${wval ? wval+'L' : ''}</div>
         </td>`;
 
       } else if (h === 15) {
+        // 🥦 Diet — result box (filled when selected)
         const dval = loadData(`h_${m}_diet_${d}`, 0);
         html += `<td class="${cellClass[wk]}"${todayStyle}>
-          <div class="tbl-pill-wrap">
-            ${[1,2,3].map(v=>`<span class="tbl-pill diet-pill${dval===v?' tbl-pill-sel dp-sel':''}" data-v="${v}" data-m="${m}" data-d="${d}">${v}</span>`).join('')}
-          </div>
+          <div class="tbl-result-box diet-result${dval?' tbl-res-filled':''}" id="dRes-${m}-${d}">${dval ? dval : ''}</div>
         </td>`;
       } else {
         const checked = loadData(`h_${m}_day_${h}_${d}`, false);
@@ -525,13 +529,66 @@ function buildPage(m) {
         
         <div class="dp-col-hdrs"><span>goal</span><span>%</span><span>count</span><span>streak</span></div>
         <div id="dpRows-${m}">
-          ${Array.from({length:TOTAL_HABITS},(_,h)=>`
-          <div class="dp-row" id="dpRow-${m}-${h}">
-            <input class="dp-goal-input" value="${days}" data-m="${m}" data-h="${h}" onchange="updateStats(${m})">
-            <div class="dp-bar-wrap"><div class="dp-bar-fill" id="dpBar-${m}-${h}" style="width:0%"></div></div>
-            <div class="dp-count" id="dpCount-${m}-${h}">0/${days}</div>
-            <div class="dp-streak" id="dpStreak-${m}-${h}">0</div>
-          </div>`).join('')}
+          ${Array.from({length:TOTAL_HABITS},(_,h)=>{
+            if (h === 14) return `
+            <div class="dp-specials-pair">
+              <div class="dp-bottle-wrap">
+                <div class="dp-bottle-label" style="color:#0077aa;">💧 Water</div>
+                <svg viewBox="0 0 120 240" width="70" height="140" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Bottle body background (empty state) -->
+                  <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z" fill="#eaf7ff"/>
+                  <!-- FILL: same path, scaleY from bottom via JS transform — no clipPath needed -->
+                  <path id="dpBar-${m}-14"
+                    d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z"
+                    fill="#5ac8fa" transform="translate(0,230) scale(1,0) translate(0,-230)"/>
+                  <!-- Bottle outline on top -->
+                  <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z" fill="none" stroke="#6a7580" stroke-width="2.5"/>
+                  <!-- Cap -->
+                  <rect x="43" y="5" width="34" height="18" rx="7" fill="none" stroke="#101619" stroke-width="2"/>
+                  <rect x="47" y="9" width="26" height="10" rx="4" fill="#494949f5"/>
+                  <!-- Tick marks -->
+                  <line x1="82" y1="90"  x2="90" y2="90"  stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
+                  <line x1="85" y1="120" x2="90" y2="120" stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
+                  <line x1="82" y1="150" x2="90" y2="150" stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
+                  <line x1="85" y1="180" x2="90" y2="180" stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
+                  <!-- Shine -->
+                  <rect x="32" y="45" width="6" height="80" rx="3" fill="white" opacity="0.35"/>
+                </svg>
+                <div class="dp-bottle-count" style="color:#0077aa;" id="dpCount-${m}-14">0/${days*3}L</div>
+                <div class="dp-bottle-streak" id="dpStreak-${m}-14">streak: 0</div>
+              </div>
+              <div class="dp-bottle-wrap">
+                <div class="dp-bottle-label" style="color:#1a7a3a;">🥦 Diet</div>
+                <svg viewBox="0 0 120 120" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Background ring -->
+                  <circle cx="60" cy="60" r="46" fill="none" stroke="#d0f0d8" stroke-width="12"/>
+                  <!-- Progress ring — stroke-dashoffset controlled by JS -->
+                  <circle id="dpBar-${m}-15" cx="60" cy="60" r="46"
+                    fill="none" stroke="#3aa862" stroke-width="12"
+                    stroke-linecap="round"
+                    stroke-dasharray="289"
+                    stroke-dashoffset="289"
+                    transform="rotate(-90 60 60)"/>
+                  <!-- Center icon -->
+                  <text x="60" y="52" text-anchor="middle" font-size="26" font-family="sans-serif">🥦</text>
+                  <!-- Center percent text -->
+                  <text id="dpBarPct-${m}-15" x="60" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#1a7a3a" font-family="DM Sans, sans-serif">0%</text>
+                </svg>
+                <div class="dp-bottle-count" style="color:#1a7a3a;" id="dpCount-${m}-15">0/${days*3}</div>
+                <div class="dp-bottle-streak" id="dpStreak-${m}-15">streak: 0</div>
+              </div>
+            </div>`;
+            if (h === 15) return '';
+            return `
+            <div class="dp-row" id="dpRow-${m}-${h}">
+              <input class="dp-goal-input" value="${days}" data-m="${m}" data-h="${h}" onchange="updateStats(${m})">
+              <div style="position:relative;height:6px;background:#e8e8e8;border-radius:4px;overflow:hidden;flex:1;">
+                <div id="dpBar-${m}-${h}" style="width:0%;height:100%;background:linear-gradient(90deg,var(--w1),#7ab0d0);border-radius:4px;transition:width .4s;"></div>
+              </div>
+              <div class="dp-count" id="dpCount-${m}-${h}">0/${days}</div>
+              <div class="dp-streak" id="dpStreak-${m}-${h}">0</div>
+            </div>`;
+          }).join('')}
         </div>
       </div>
     </div>
@@ -584,7 +641,7 @@ async function init() {
   const pagesEl = document.getElementById('pages');
   const tabsEl  = document.getElementById('monthTabs');
   MONTHS.forEach((mn, m) => {
-    pagesEl.innerHTML += buildPage(m);
+    pagesEl.insertAdjacentHTML('beforeend', buildPage(m));
     const tab = document.createElement('button');
     tab.className = 'month-tab' + (m === 0 ? ' active' : '');
     tab.textContent = mn.slice(0, 3);
@@ -614,6 +671,27 @@ function switchMonth(m) {
 //  STATS & CHARTS
 // ════════════════════════════════════════════════════════════
 
+// ── Bottle/bowl fill animation ──
+// Uses scaleY transform anchored at bottom — NO clipPath needed at all.
+// anchor = bottom y coord of the shape in its viewBox (230 for bottle, 100 for bowl)
+function animateBottle(el, targetPct, anchor) {
+  anchor = anchor || 230;
+  const startScale = parseFloat(el.dataset.scale || '0');
+  const endScale   = Math.min(1, Math.max(0, targetPct));
+  el.dataset.scale = endScale;
+  const duration = 900;
+  const start = performance.now();
+  function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const e = ease(t);
+    const s = startScale + (endScale - startScale) * e;
+    el.setAttribute('transform', 'translate(0,' + anchor + ') scale(1,' + s.toFixed(4) + ') translate(0,' + (-anchor) + ')');
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 function updateStats(m) {
   const days = MONTH_DAYS[m];
   let totalDone = 0, totalPoss = 0;
@@ -635,6 +713,38 @@ function updateStats(m) {
     if (cntEl) cntEl.textContent = `${done}/${days}`;
     if (strkEl) strkEl.textContent = done;
   }
+
+  // Water progress bar (max = days × 3L)
+  const wDays = MONTH_DAYS[m];
+  let wTotal = 0;
+  for (let dd = 1; dd <= wDays; dd++) wTotal += loadData(`h_${m}_water_${dd}`, 0);
+  const wMax = wDays * 3;
+  const wBar = document.getElementById(`dpBar-${m}-14`);
+  const wCnt = document.getElementById(`dpCount-${m}-14`);
+  const wStrk = document.getElementById(`dpStreak-${m}-14`);
+  if (wBar) animateBottle(wBar, Math.min(1, wTotal / wMax));
+  if (wCnt) wCnt.textContent = `${wTotal} / ${wMax}L`;
+  if (wStrk) wStrk.textContent = `streak: ${wTotal}`;
+
+  // Diet progress bar (max = days × 3)
+  let dTotal = 0;
+  for (let dd = 1; dd <= wDays; dd++) dTotal += loadData(`h_${m}_diet_${dd}`, 0);
+  const dMax = wDays * 3;
+  const dBar = document.getElementById(`dpBar-${m}-15`);
+  const dCnt = document.getElementById(`dpCount-${m}-15`);
+  const dStrk = document.getElementById(`dpStreak-${m}-15`);
+  if (dBar) {
+    const dPct = Math.min(1, dTotal / dMax);
+    const circumference = 289;
+    const offset = circumference - dPct * circumference;
+    dBar.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1)';
+    dBar.setAttribute('stroke-dashoffset', offset.toFixed(2));
+    const pctEl = document.getElementById('dpBarPct-' + m + '-15');
+    if (pctEl) pctEl.textContent = Math.round(dPct * 100) + '%';
+  }
+  if (dCnt) dCnt.textContent = `${dTotal} / ${dMax}`;
+  if (dStrk) dStrk.textContent = `streak: ${dTotal}`;
+
   const pctVal = totalPoss > 0 ? (totalDone / totalPoss * 100).toFixed(2) + '%' : '0.00%';
   const fracVal = `${totalDone} / ${totalPoss}`;
   document.getElementById(`dpPct-${m}`).textContent = pctVal;
@@ -723,20 +833,34 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const pill = e.target.closest('.water-pill');
   if (!pill) return;
-  const {m, d, v} = pill.dataset;
-  const mn = +m, dn = +d, vn = +v;
-  const cur = loadData(`h_${mn}_water_${dn}`, 0);
-  const newVal = cur === vn ? 0 : vn;
-  saveData(`h_${mn}_water_${dn}`, newVal);
-  // update all water pills for this day (table + panel)
-  document.querySelectorAll(`.water-pill[data-m="${mn}"][data-d="${dn}"]`).forEach(p => {
-    const sel = +p.dataset.v === newVal;
-    p.classList.toggle('tbl-pill-sel', sel);
-    p.classList.toggle('wp-sel', sel);
-  });
-  // update left badge in daily panel
-  const badge = document.getElementById(`wBadge-${mn}-${dn}`);
-  if (badge) badge.textContent = newVal ? newVal+'L' : '';
+  const {m, v} = pill.dataset;
+  const d = pill.dataset.d;
+  const mn = +m, vn = +v;
+
+  if (d === 'ALL') {
+    // Table inline pill — apply to TODAY only
+    const dn = (TODAY_Y === 2026 && TODAY_M === mn) ? TODAY_D : 1;
+    const cur = loadData(`h_${mn}_water_${dn}`, 0);
+    const newVal = cur === vn ? 0 : vn;
+    saveData(`h_${mn}_water_${dn}`, newVal);
+    const wRes = document.getElementById(`wRes-${mn}-${dn}`);
+    if (wRes) { wRes.textContent = newVal ? newVal+'L' : ''; wRes.classList.toggle('tbl-res-filled', !!newVal); }
+    document.querySelectorAll(`.water-pill[data-m="${mn}"][data-d="ALL"]`).forEach(p => {
+      p.classList.toggle('wp-sel', +p.dataset.v === newVal);
+    });
+  } else {
+    const dn = +d;
+    const cur = loadData(`h_${mn}_water_${dn}`, 0);
+    const newVal = cur === vn ? 0 : vn;
+    saveData(`h_${mn}_water_${dn}`, newVal);
+    const wRes = document.getElementById(`wRes-${mn}-${dn}`);
+    if (wRes) { wRes.textContent = newVal ? newVal+'L' : ''; wRes.classList.toggle('tbl-res-filled', !!newVal); }
+    const badge = document.getElementById(`wBadge-${mn}-${dn}`);
+    if (badge) badge.textContent = newVal ? newVal+'L' : '';
+    document.querySelectorAll(`.water-pill[data-m="${mn}"][data-d="${dn}"]`).forEach(p => {
+      p.classList.toggle('wp-sel', +p.dataset.v === newVal);
+    });
+  }
   showToast(); updateStats(mn);
 });
 
@@ -744,20 +868,34 @@ document.addEventListener('click', e => {
 document.addEventListener('click', e => {
   const pill = e.target.closest('.diet-pill');
   if (!pill) return;
-  const {m, d, v} = pill.dataset;
-  const mn = +m, dn = +d, vn = +v;
-  const cur = loadData(`h_${mn}_diet_${dn}`, 0);
-  const newVal = cur === vn ? 0 : vn;
-  saveData(`h_${mn}_diet_${dn}`, newVal);
-  // update all diet pills for this day (table + panel)
-  document.querySelectorAll(`.diet-pill[data-m="${mn}"][data-d="${dn}"]`).forEach(p => {
-    const sel = +p.dataset.v === newVal;
-    p.classList.toggle('tbl-pill-sel', sel);
-    p.classList.toggle('dp-sel', sel);
-  });
-  // update left badge in daily panel
-  const dbadge = document.getElementById(`dBadge-${mn}-${dn}`);
-  if (dbadge) dbadge.textContent = newVal ? newVal : '';
+  const {m, v} = pill.dataset;
+  const d = pill.dataset.d;
+  const mn = +m, vn = +v;
+
+  if (d === 'ALL') {
+    // Table inline pill — apply to TODAY only
+    const dn = (TODAY_Y === 2026 && TODAY_M === mn) ? TODAY_D : 1;
+    const cur = loadData(`h_${mn}_diet_${dn}`, 0);
+    const newVal = cur === vn ? 0 : vn;
+    saveData(`h_${mn}_diet_${dn}`, newVal);
+    const dRes = document.getElementById(`dRes-${mn}-${dn}`);
+    if (dRes) { dRes.textContent = newVal ? newVal : ''; dRes.classList.toggle('tbl-res-filled', !!newVal); }
+    document.querySelectorAll(`.diet-pill[data-m="${mn}"][data-d="ALL"]`).forEach(p => {
+      p.classList.toggle('dp-sel', +p.dataset.v === newVal);
+    });
+  } else {
+    const dn = +d;
+    const cur = loadData(`h_${mn}_diet_${dn}`, 0);
+    const newVal = cur === vn ? 0 : vn;
+    saveData(`h_${mn}_diet_${dn}`, newVal);
+    const dRes = document.getElementById(`dRes-${mn}-${dn}`);
+    if (dRes) { dRes.textContent = newVal ? newVal : ''; dRes.classList.toggle('tbl-res-filled', !!newVal); }
+    const dbadge = document.getElementById(`dBadge-${mn}-${dn}`);
+    if (dbadge) dbadge.textContent = newVal ? newVal : '';
+    document.querySelectorAll(`.diet-pill[data-m="${mn}"][data-d="${dn}"]`).forEach(p => {
+      p.classList.toggle('dp-sel', +p.dataset.v === newVal);
+    });
+  }
   showToast(); updateStats(mn);
 });
 
@@ -854,7 +992,7 @@ function buildCalDayPanel(m, d) {
         <span class="cdh-sel-badge water-sel-badge" id="wBadge-${m}-${d}">${wval ? wval+'L' : ''}</span>
         <span class="cdh-name">${escHtml(hname)}</span>
         <span class="cdh-timing cdh-pill-group">
-          ${[1,2,3].map(v=>`<span class="cdh-pill water-pill" data-v="${v}" data-m="${m}" data-d="${d}">${v}L</span>`).join('')}
+          ${[1,2,3].map(v=>`<span class="cdh-pill water-pill${wval===v?' wp-sel':''}" data-v="${v}" data-m="${m}" data-d="${d}">${v}L</span>`).join('')}
         </span>
       </div>`;
     } else if (h === 15) {
@@ -864,7 +1002,7 @@ function buildCalDayPanel(m, d) {
         <span class="cdh-sel-badge diet-sel-badge" id="dBadge-${m}-${d}">${dval ? dval : ''}</span>
         <span class="cdh-name">${escHtml(hname)}</span>
         <span class="cdh-timing cdh-pill-group">
-          ${[1,2,3].map(v=>`<span class="cdh-pill diet-pill" data-v="${v}" data-m="${m}" data-d="${d}">${v}</span>`).join('')}
+          ${[1,2,3].map(v=>`<span class="cdh-pill diet-pill${dval===v?' dp-sel':''}" data-v="${v}" data-m="${m}" data-d="${d}">${v}</span>`).join('')}
         </span>
       </div>`;
     } else {

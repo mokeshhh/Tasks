@@ -104,7 +104,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .dp-summary { padding: 8px 12px; font-size: 12px; font-weight: 700; border-bottom: 1px solid #f0f0f0; color: var(--text-mid); text-align: center; }
 .dp-col-hdrs { display: grid; grid-template-columns: 28px 1fr 48px 40px; gap: 4px; padding: 6px 10px 4px; background: var(--blue-box); font-size: 9px; font-weight: 600; color: var(--text-dark); }
 .dp-row:first-child { margin-top: 5px; }
-.dp-row:nth-last-child(2) { margin-top: 20px; }
+
 .dp-row { display: grid; grid-template-columns: 28px 1fr 48px 40px; gap: 4px; padding: 6.8px 10px; font-size: 10px; align-items: center; border-bottom: 1px solid #f8f8f8; }
 .dp-row:nth-child(odd) { background: var(--w1ll); }
 .dp-goal-input { width: 24px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 10px; text-align: center; outline: none; color: var(--text-dark); }
@@ -529,49 +529,142 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 }
 
 
-/* ── Pill selectors (shared base) ───────────────────────── */
-.tbl-pill-wrap { display:flex; gap:2px; justify-content:center; align-items:center; }
-
-.tbl-pill {
-  font-size:8px; font-weight:600; padding:1px 4px; border-radius:8px;
-  border:1.5px solid #aaa; color:#aaa; cursor:pointer; user-select:none;
-  transition:border-color .15s, color .15s;
+/* ── Table result box ───────────────────────────────────── */
+.tbl-result-box {
+  width:20px; height:20px; border-radius:5px; border:1.5px solid #ccc;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; color:#ccc; margin:auto;
+  transition:background .15s, color .15s, border-color .15s;
 }
-.tbl-pill.wp-sel  { border-color:#0077aa; color:#0077aa; background:transparent; }
-.tbl-pill.dp-sel  { border-color:#1a7a3a; color:#1a7a3a; background:transparent; }
+.water-result.tbl-res-filled { background:#0077aa; border-color:#0077aa; color:#fff; }
+.diet-result.tbl-res-filled  { background:#1a7a3a; border-color:#1a7a3a; color:#fff; }
 
 /* ── Daily panel pills (right side) ─────────────────────── */
 .cdh-pill-group { display:flex; gap:3px; align-items:center; background:none !important; }
 .cdh-pill {
-  font-size:9px; font-weight:600; padding:1px 5px; border-radius:8px;
-  border:1.5px solid #ccc; color:#aaa; cursor:pointer; user-select:none;
+  font-size:9px; font-weight:600; padding:2px 6px; border-radius:8px;
+  border:1.5px solid #ddd; color:#bbb; background:#fff;
+  cursor:pointer; user-select:none; transition:border-color .15s, color .15s;
 }
-
 .cdh-pill:hover { border-color:#aaa; color:#666; }
-
-.cdh-pill.wp-sel {
-  border-color:#9acbe2;
-  color:#aaa;              /* keep original text color */
-  background:transparent;
-}
-
-.cdh-pill.dp-sel {
-  border-color:#98ebb4;
-  color:#aaa;              /* keep original text color */
-  background:transparent;
-}
+.cdh-pill.wp-sel  { border-color:#0077aa; color:#0077aa; }
+.cdh-pill.dp-sel  { border-color:#1a7a3a; color:#1a7a3a; }
 
 /* ── Left badge in daily panel ───────────────────────────── */
 .cdh-sel-badge {
-  min-width:24px; height:20px; display:flex; align-items:center; justify-content:center;
+  min-width:26px; height:22px; display:flex; align-items:center; justify-content:center;
   font-size:10px; font-weight:700; border-radius:6px; flex-shrink:0;
-  border:1.5px solid #ddd; color:transparent;
+  border:1.5px solid #ddd; color:transparent; background:#fff;
+  transition:all .15s;
 }
-.water-sel-badge { border-color:#0077aa55; color:#0077aa; }
-.diet-sel-badge  { border-color:#1a7a3a55; color:#1a7a3a; }
+.water-sel-badge { border-color:#0077aa55; }
+.diet-sel-badge  { border-color:#1a7a3a55; }
+.water-sel-badge:not(:empty) { background:#0077aa; border-color:#0077aa; color:#fff; }
+.diet-sel-badge:not(:empty)  { background:#1a7a3a; border-color:#1a7a3a; color:#fff; }
 
 /* ── Calendar day % mini label ───────────────────────────── */
 .cal-day-pct-mini {
   font-size:7px; font-weight:700; color:#888; line-height:1;
   position:absolute; bottom:2px; left:0; right:0; text-align:center;
+}
+
+/* ══════════════════════════════════════════
+   DAILY PROGRESS — Special vertical visuals
+   ══════════════════════════════════════════ */
+
+/* Wrapper for water + diet side by side */
+#dpRows-0 .dp-special-row,
+[id^="dpRows-"] .dp-special-row {
+  grid-column: 1 / -1;
+  padding: 0;
+  border-bottom: none;
+  background: none;
+}
+
+.dp-special-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 4px 12px;
+  border-top: 2px solid #e8f8e8;
+  border-bottom: none !important;
+  background: linear-gradient(to bottom, #f0faff, #f8fffe) !important;
+}
+
+.dp-bottle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.dp-bottle-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+/* ── Bottle SVG wrappers ─────────────────────────────────── */
+.dp-bottle {
+  position: relative;
+  overflow: visible;
+  background: none;
+  border: none;
+  box-shadow: none;
+  width: 54px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dp-bottle::before,
+.dp-bottle::after { display: none; }
+
+.diet-bottle {
+  width: 64px;
+  height: 120px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Fill bar — animated, used inside SVG via JS */
+.dp-bottle-fill {
+  transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.water-fill { fill: url(#waterGrad); }
+.diet-fill  { fill: url(#dietGrad);  }
+
+.dp-bottle-count {
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+.dp-bottle-streak {
+  font-size: 8px;
+  color: var(--text-light);
+  text-align: center;
+}
+
+/* Make the two special rows display side by side */
+#dpRows-0 .dp-special-row ~ .dp-special-row,
+[id^="dpRows-"] .dp-special-row ~ .dp-special-row {
+  border-top: none;
+}
+
+/* Override: put water+diet side by side inside the panel */
+.dp-special-row + .dp-special-row {
+  border-top: none;
+}
+
+/* Side-by-side water + diet visuals */
+.dp-specials-pair {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 10px 8px 14px;
+  background: linear-gradient(to bottom, #f0faff, #f8fff8);
+  border-top: 1px solid #e0f0e8;
 }

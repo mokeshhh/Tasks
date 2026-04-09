@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Bottle Fill Test</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a1a;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 32px;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    color: #888;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /* ── Bottle card ── */
+  .bottle-card {
+    background: #242424;
+    border: 1px solid #333;
+    border-radius: 20px;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-width: 200px;
+  }
+
+  .bottle-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5DCAA5;
+    letter-spacing: 1px;
+  }
+
+  /* ── SVG bottle ── */
+  .bottle-svg {
+    display: block;
+    overflow: visible;
+  }
+
+  .bottle-count {
+    font-size: 22px;
+    font-weight: 600;
+    color: #eee;
+    letter-spacing: -0.5px;
+  }
+
+  .bottle-sub {
+    font-size: 11px;
+    color: #555;
+    font-weight: 400;
+    margin-top: -10px;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .presets {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    color: #aaa;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: #333; color: #eee; border-color: #555; }
+  .btn.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .slider-row span {
+    font-size: 12px;
+    color: #555;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #333;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #5DCAA5;
+    cursor: pointer;
+    border: 2px solid #1a1a1a;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #5DCAA5;
+    cursor: pointer;
+    border: 2px solid #1a1a1a;
+  }
+</style>
+</head>
+<body>
+
+<h1>💧 Water Bottle Fill — Test</h1>
+
+<div class="bottle-card">
+  <div class="bottle-label">💧 Water</div>
+
+  <!--
+    Bottle SVG dimensions:
+    viewBox="0 0 120 240"
+    Cap:   x=42,y=4, w=36,h=18 (top cap)
+    Body:  path from y=28 to y=228
+    Inner fill area: y=30 to y=226  →  innerTop=30, innerBottom=226, maxH=196
+    Clip path matches body shape
+  -->
+  <svg id="bottleSvg" class="bottle-svg" viewBox="0 0 120 240" width="110" height="220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Clip to bottle body shape -->
+      <clipPath id="bodyClip">
+        <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z"/>
+      </clipPath>
+    </defs>
+
+    <!-- Cap -->
+    <rect x="43" y="5" width="34" height="18" rx="7" fill="none" stroke="#555" stroke-width="2"/>
+    <rect x="47" y="9" width="26" height="10" rx="4" fill="#3a3a3a"/>
+
+    <!-- Bottle body outline -->
+    <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z"
+      fill="none" stroke="#555" stroke-width="2.5"/>
+
+    <!-- Water fill rect — grows upward from bottom -->
+    <!-- BOTTOM of fill area = 226, TOP = 30, so maxFillH = 196 -->
+    <rect id="waterFill"
+      x="24" y="226" width="72" height="0"
+      fill="#5DCAA5"
+      clip-path="url(#bodyClip)"
+      style="transition: none;"/>
+
+    <!-- Tick marks on right side -->
+    <line x1="82" y1="90"  x2="90" y2="90"  stroke="#444" stroke-width="1.5"/>
+    <line x1="85" y1="120" x2="90" y2="120" stroke="#444" stroke-width="1.5"/>
+    <line x1="82" y1="150" x2="90" y2="150" stroke="#444" stroke-width="1.5"/>
+    <line x1="85" y1="180" x2="90" y2="180" stroke="#444" stroke-width="1.5"/>
+
+    <!-- Shine highlight -->
+    <rect x="32" y="45" width="6" height="80" rx="3" fill="white" opacity="0.06"/>
+  </svg>
+
+  <div class="bottle-count" id="countDisplay">0.00 L</div>
+  <div class="bottle-sub" id="pctDisplay">0% full (max 3L)</div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="presets" id="presets">
+    <button class="btn" data-l="0">Empty</button>
+    <button class="btn" data-l="0.5">0.5L</button>
+    <button class="btn" data-l="1">1L</button>
+    <button class="btn" data-l="1.5">1.5L</button>
+    <button class="btn" data-l="2">2L</button>
+    <button class="btn" data-l="2.5">2.5L</button>
+    <button class="btn" data-l="3">3L ✓</button>
+  </div>
+
+  <div class="slider-row">
+    <span>0L</span>
+    <input type="range" id="slider" min="0" max="3" step="0.05" value="0">
+    <span>3L</span>
+  </div>
+</div>
+
+<script>
+  // ── Constants matching the SVG above ──
+  const FILL_BOTTOM = 226;   // y where fill rect sits at 0
+  const FILL_TOP    = 30;    // y of top of inner bottle space
+  const MAX_FILL_H  = FILL_BOTTOM - FILL_TOP;  // = 196px
+  const MAX_LITRES  = 3;
+
+  const fillRect    = document.getElementById('waterFill');
+  const countEl    = document.getElementById('countDisplay');
+  const pctEl      = document.getElementById('pctDisplay');
+  const slider     = document.getElementById('slider');
+
+  // ── Animate bottle fill (eased) ──
+  let animId = null;
+
+  function animateFill(fromH, toH, duration = 700) {
+    if (animId) cancelAnimationFrame(animId);
+    const startTime = performance.now();
+
+    function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const e = ease(t);
+      const h = fromH + (toH - fromH) * e;
+      const y = FILL_BOTTOM - h;
+      fillRect.setAttribute('height', h.toFixed(2));
+      fillRect.setAttribute('y', y.toFixed(2));
+      if (t < 1) animId = requestAnimationFrame(step);
+    }
+    animId = requestAnimationFrame(step);
+  }
+
+  function setLitres(litres) {
+    const clamped = Math.min(Math.max(litres, 0), MAX_LITRES);
+    const frac    = clamped / MAX_LITRES;
+    const targetH = frac * MAX_FILL_H;
+
+    // Get current height for smooth animation from current state
+    const curH = parseFloat(fillRect.getAttribute('height')) || 0;
+    animateFill(curH, targetH);
+
+    countEl.textContent = clamped.toFixed(2) + ' L';
+    pctEl.textContent   = Math.round(frac * 100) + '% full (max 3L)';
+
+    // Update button states
+    document.querySelectorAll('#presets .btn').forEach(b => {
+      b.classList.toggle('active', parseFloat(b.dataset.l) === clamped);
+    });
+  }
+
+  // Slider
+  slider.addEventListener('input', () => setLitres(parseFloat(slider.value)));
+
+  // Preset buttons
+  document.querySelectorAll('#presets .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = parseFloat(btn.dataset.l);
+      slider.value = v;
+      setLitres(v);
+    });
+  });
+
+  // Start empty
+  setLitres(0);
+</script>
+</body>
+</html>
