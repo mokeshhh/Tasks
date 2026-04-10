@@ -305,8 +305,9 @@ function buildCalendar(m) {
     // Completion data
     let done = 0;
     for (let h = 0; h < TOTAL_HABITS; h++) {
-      const val = loadData(`h_${m}_day_${h}_${d}`, false);
-      if (val) done++;
+      if (h === 14) { done += loadData(`h_${m}_water_${d}`, 0) / 3; }
+      else if (h === 15) { done += loadData(`h_${m}_diet_${d}`, 0) / 3; }
+      else { if (loadData(`h_${m}_day_${h}_${d}`, false)) done++; }
     }
     const pct = done / TOTAL_HABITS;
     let cls = 'cal-day';
@@ -357,7 +358,9 @@ function updateCalendar(m) {
   for (let d = days; d >= 1; d--) {
     let done = 0;
     for (let h = 0; h < TOTAL_HABITS; h++) {
-      if (loadData(`h_${m}_day_${h}_${d}`, false)) done++;
+      if (h === 14) { done += loadData(`h_${m}_water_${d}`, 0) / 3; }
+      else if (h === 15) { done += loadData(`h_${m}_diet_${d}`, 0) / 3; }
+      else { if (loadData(`h_${m}_day_${h}_${d}`, false)) done++; }
     }
     const pct = done / TOTAL_HABITS;
     if (streakRunning && d <= (TODAY_M === m ? TODAY_D : days)) {
@@ -370,7 +373,9 @@ function updateCalendar(m) {
   for (let d = 1; d <= days; d++) {
     let done = 0;
     for (let h = 0; h < TOTAL_HABITS; h++) {
-      if (loadData(`h_${m}_day_${h}_${d}`, false)) done++;
+      if (h === 14) { done += loadData(`h_${m}_water_${d}`, 0) / 3; }
+      else if (h === 15) { done += loadData(`h_${m}_diet_${d}`, 0) / 3; }
+      else { if (loadData(`h_${m}_day_${h}_${d}`, false)) done++; }
     }
     totalDone += done;
     if (done > 0) daysWithAny++;
@@ -507,6 +512,7 @@ function buildPage(m) {
       <div class="cal-day-habits-panel" id="calDayPanel-${m}">
         <div class="cal-day-habits-hdr">
           <span class="cal-day-habits-title" id="calDayTitle-${m}">— SELECT A DAY —</span>
+          <button class="cal-check-all-btn" id="calCheckAll-${m}" data-m="${m}" data-d="">✓ ALL</button>
           <span class="cal-day-pct" id="calDayPct-${m}">0%</span>
         </div>
         <div class="cal-day-habits-list" id="calDayList-${m}">
@@ -536,23 +542,23 @@ function buildPage(m) {
                 <div class="dp-bottle-label" style="color:#0077aa;">💧 Water</div>
                 <svg viewBox="0 0 120 240" width="70" height="140" xmlns="http://www.w3.org/2000/svg">
                   <!-- Bottle body background (empty state) -->
-                  <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z" fill="#eaf7ff"/>
+                  <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 230 L24 230 L24 60 Q24 48 30 38 Z" fill="#eaf7ff"/>
                   <!-- FILL: same path, scaleY from bottom via JS transform — no clipPath needed -->
                   <path id="dpBar-${m}-14"
-                    d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z"
+                    d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 230 L24 230 L24 60 Q24 48 30 38 Z"
                     fill="#5ac8fa" transform="translate(0,230) scale(1,0) translate(0,-230)"/>
                   <!-- Bottle outline on top -->
-                  <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 218 Q96 230 60 230 Q24 230 24 218 L24 60 Q24 48 30 38 Z" fill="none" stroke="#6a7580" stroke-width="2.5"/>
+                  <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 230 L24 230 L24 60 Q24 48 30 38 Z" fill="none" stroke="#6a7580" stroke-width="2.5"/>
                   <!-- Cap -->
                   <rect x="43" y="5" width="34" height="18" rx="7" fill="none" stroke="#101619" stroke-width="2"/>
-                  <rect x="47" y="9" width="26" height="10" rx="4" fill="#494949f5"/>
+                  <rect x="47" y="9" width="26" height="10" rx="4" fill="#656565"/>
                   <!-- Tick marks -->
                   <line x1="82" y1="90"  x2="90" y2="90"  stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
                   <line x1="85" y1="120" x2="90" y2="120" stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
                   <line x1="82" y1="150" x2="90" y2="150" stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
                   <line x1="85" y1="180" x2="90" y2="180" stroke="rgba(90,200,250,0.6)" stroke-width="1.5"/>
                   <!-- Shine -->
-                  <rect x="32" y="45" width="6" height="80" rx="3" fill="white" opacity="0.35"/>
+                  <rect x="32" y="45" width="6" height="80" rx="3" fill="white" opacity="0."/>
                 </svg>
                 <div class="dp-bottle-count" style="color:#0077aa;" id="dpCount-${m}-14">0/${days*3}L</div>
                 <div class="dp-bottle-streak" id="dpStreak-${m}-14">streak: 0</div>
@@ -822,6 +828,7 @@ document.addEventListener('change', e => {
     const { m, h, d } = t.dataset;
     saveData(`h_${m}_day_${h}_${d}`, t.checked);
     updateStats(+m);
+    buildCalDayPanel(+m, +d);
   } else if (t.matches('.habit-name-input')) {
     const { m, h } = t.dataset;
     saveData(`h_${m}_name_${h}`, t.value);
@@ -862,9 +869,9 @@ document.addEventListener('click', e => {
     });
   }
   showToast(); updateStats(mn);
+  const _wDayRefresh = (d === 'ALL') ? ((TODAY_Y === 2026 && TODAY_M === mn) ? TODAY_D : 1) : +d;
+  buildCalDayPanel(mn, _wDayRefresh);
 });
-
-// ── Diet pill handler ────────────────────────────────────────
 document.addEventListener('click', e => {
   const pill = e.target.closest('.diet-pill');
   if (!pill) return;
@@ -897,6 +904,8 @@ document.addEventListener('click', e => {
     });
   }
   showToast(); updateStats(mn);
+  const _dDayRefresh = (d === 'ALL') ? ((TODAY_Y === 2026 && TODAY_M === mn) ? TODAY_D : 1) : +d;
+  buildCalDayPanel(mn, _dDayRefresh);
 });
 
 // ── Diet arc drag handler ────────────────────────────────────
@@ -952,6 +961,38 @@ document.addEventListener('click', e => {
   updateStats(m);
 });
 
+// ── Calendar check-all button ─────────────────────────────────
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.cal-check-all-btn');
+  if (!btn || !btn.dataset.d) return;
+  const m = +btn.dataset.m;
+  const d = +btn.dataset.d;
+
+  // Check if everything is currently done
+  let allDone = true;
+  for (let h = 0; h < 14; h++) { if (!loadData(`h_${m}_day_${h}_${d}`, false)) { allDone = false; break; } }
+  if (loadData(`h_${m}_water_${d}`, 0) !== 3) allDone = false;
+  if (loadData(`h_${m}_diet_${d}`, 0) !== 3) allDone = false;
+
+  const newState = !allDone;
+
+  // Set all 14 regular habits
+  for (let h = 0; h < 14; h++) {
+    saveData(`h_${m}_day_${h}_${d}`, newState);
+    const cb = document.querySelector(`.day-cb[data-m="${m}"][data-h="${h}"][data-d="${d}"]`);
+    if (cb) cb.checked = newState;
+  }
+
+  // Set water and diet to 3 (or 0 if unchecking)
+  const specialVal = newState ? 3 : 0;
+  saveData(`h_${m}_water_${d}`, specialVal);
+  saveData(`h_${m}_diet_${d}`, specialVal);
+
+  btn.classList.toggle('cal-all-done', newState);
+  updateStats(m);
+  buildCalDayPanel(m, d);
+});
+
 // ── Calendar day click → show single-day habits ──────────────
 document.addEventListener('click', e => {
   const day = e.target.closest('.cal-day:not(.empty)');
@@ -987,7 +1028,7 @@ function buildCalDayPanel(m, d) {
 
     if (h === 14) {
       const wval = loadData(`h_${m}_water_${d}`, 0);
-      if (wval > 0) done++;
+      done += wval / 3;
       html += `<div class="cdh-row">
         <span class="cdh-sel-badge water-sel-badge" id="wBadge-${m}-${d}">${wval ? wval+'L' : ''}</span>
         <span class="cdh-name">${escHtml(hname)}</span>
@@ -997,7 +1038,7 @@ function buildCalDayPanel(m, d) {
       </div>`;
     } else if (h === 15) {
       const dval = loadData(`h_${m}_diet_${d}`, 0);
-      if (dval > 0) done++;
+      done += dval / 3;
       html += `<div class="cdh-row">
         <span class="cdh-sel-badge diet-sel-badge" id="dBadge-${m}-${d}">${dval ? dval : ''}</span>
         <span class="cdh-name">${escHtml(hname)}</span>
@@ -1020,6 +1061,35 @@ function buildCalDayPanel(m, d) {
   listEl.innerHTML = html;
   const pct = Math.round(done / TOTAL_HABITS * 100);
   pctEl.textContent = pct + '%';
+
+  // Immediately update the calendar grid cell % label for this day
+  const gridCells = document.querySelectorAll(`#calGrid-${m} .cal-day:not(.empty)`);
+  const thisCell = gridCells[d - 1];
+  if (thisCell) {
+    let miniLabel = thisCell.querySelector('.cal-day-pct-mini');
+    if (done > 0) {
+      if (!miniLabel) {
+        miniLabel = document.createElement('div');
+        miniLabel.className = 'cal-day-pct-mini';
+        thisCell.appendChild(miniLabel);
+      }
+      miniLabel.textContent = pct + '%';
+    } else if (miniLabel) {
+      miniLabel.remove();
+    }
+  }
+
+  // Sync the check-all button for this day
+  const calCheckAllBtn = document.getElementById(`calCheckAll-${m}`);
+  if (calCheckAllBtn) {
+    calCheckAllBtn.dataset.d = d;
+    // Figure out if all habits are done for this day
+    let allDone = true;
+    for (let h = 0; h < 14; h++) { if (!loadData(`h_${m}_day_${h}_${d}`, false)) { allDone = false; break; } }
+    if (loadData(`h_${m}_water_${d}`, 0) !== 3) allDone = false;
+    if (loadData(`h_${m}_diet_${d}`, 0) !== 3) allDone = false;
+    calCheckAllBtn.classList.toggle('cal-all-done', allDone);
+  }
 
   // Highlight the selected day
   document.querySelectorAll(`#calGrid-${m} .cal-day`).forEach(el => el.classList.remove('cal-day-selected'));
