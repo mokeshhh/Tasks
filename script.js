@@ -547,7 +547,7 @@ function buildPage(m) {
                   <path id="dpBar-${m}-14"
                     d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 230 L24 230 L24 60 Q24 48 30 38 Z"
                     fill="#5ac8fa" transform="translate(0,230) scale(1,0) translate(0,-230)"/>
-                  <!-- Bottle outline on top -->
+                   <!-- Bottle outline on top -->
                   <path d="M34 28 Q34 22 44 22 L76 22 Q86 22 86 28 L90 38 Q96 48 96 60 L96 230 L24 230 L24 60 Q24 48 30 38 Z" fill="none" stroke="#6a7580" stroke-width="2.5"/>
                   <!-- Cap -->
                   <rect x="43" y="5" width="34" height="18" rx="7" fill="none" stroke="#101619" stroke-width="2"/>

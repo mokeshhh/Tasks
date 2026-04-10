@@ -113,7 +113,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .dp-count { font-size: 10px; color: var(--text-mid); text-align: center; }
 .dp-streak { font-size: 10px; color: var(--text-light); text-align: center; }
 
-/* Check-all row */
+ /* Check-all row */
 .check-all-row { background: #f0f7ff; border-bottom: 2px solid var(--w1); }
 .check-all-label { font-size: 8px; font-weight: 700; letter-spacing: 1.2px; color: #5a9abf; background: var(--w1ll); padding: 2px 7px; border-radius: 10px; display: inline-block; white-space: nowrap; }
 .check-all-cell { padding: 3px 1px !important; }
