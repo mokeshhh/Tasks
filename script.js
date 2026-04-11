@@ -94,6 +94,7 @@ function showSyncStatus(state) {
 
 function saveData(key, val) {
   STORE[key] = val;
+  localStorage.setItem('habit_store_cache', JSON.stringify(STORE));
   scheduleSave();
   showToast();
 }
