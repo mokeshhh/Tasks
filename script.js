@@ -125,8 +125,8 @@ const TODAY_RING = '#e8a800';
 
 const DEFAULT_HABITS = [
   "☀️ Rise & Shine","📈 Market Trading","🍳 Breakfast & Reset","📚 Deep Study",
-  "🧘 Midday Recharge","🥗 Lunch Break","✏️ Focused Study","🚿 Freshen Up",
-  "🍎 Evening Snack","📖 Study / Wind Down","🌙 Evening Routine",
+  "🧘 Midday Recharge","✏️ Focused Study","🥗 Lunch Break","📱 Relax & 💪 Exercise",
+  "🍎 Snack & 🚿 Bath ","📖 Study / Wind Down","🌙 Evening Routine",
   "🍽️ Dinner & Relax","🔖 Night Study","😴 Wind Down & Sleep",
 ];
 const SPECIAL_HABITS = ["💧 3L Water Intake","🥦 Diet Followed"];
@@ -134,8 +134,8 @@ const TOTAL_HABITS = 16;
 
 const TIMINGS = [
   "8:00 AM","9:00–10:00","10:00–11:00","11:00–12:00",
-  "12:00–1:30","1:30–2:30","2:30–3:30","3:30–4:30",
-  "4:30–5:30","5:30–7:30","7:30–8:30","8:30–9:30",
+  "12:00–1:30","1:30–2:30","2:30–3:00","3:00–4:30",
+  "5:00–6:00","6:00–7:30","7:30–8:30","8:30–9:30",
   "9:30–10:30","10:30–11:30","DAILY","DAILY"
 ];
 

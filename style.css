@@ -105,7 +105,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .dp-col-hdrs { display: grid; grid-template-columns: 28px 1fr 48px 40px; gap: 4px; padding: 6px 10px 4px; background: var(--blue-box); font-size: 9px; font-weight: 600; color: var(--text-dark); }
 .dp-row:first-child { margin-top: 5px; }
 
-.dp-row { display: grid; grid-template-columns: 28px 1fr 48px 40px; gap: 4px; padding: 6.8px 10px; font-size: 10px; align-items: center; border-bottom: 1px solid #f8f8f8; }
+.dp-row { display: grid; grid-template-columns: 28px 1fr 48px 40px; gap: 4px; padding: 7.0px 10px; font-size: 10px; align-items: center; border-bottom: 1px solid #f8f8f8; }
 .dp-row:nth-child(odd) { background: var(--w1ll); }
 .dp-goal-input { width: 24px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 10px; text-align: center; outline: none; color: var(--text-dark); }
 .dp-bar-wrap { background: #e8e8e8; border-radius: 4px; height: 6px; overflow: hidden; }
